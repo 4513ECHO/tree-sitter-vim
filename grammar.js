@@ -120,7 +120,9 @@ module.exports = grammar({
       $._separator,
       $._scope_dict,
       $.scope,
-      $.string_literal,
+      $._string_start,
+      $._string_content,
+      $._string_end,
       $.comment,
       $.line_continuation_comment,
       $._bang_filter,
@@ -982,6 +984,15 @@ module.exports = grammar({
 
     unary_operation: ($) =>
       prec.left(PREC.UNARY, seq(choice("-", "!", "+"), $._expression)),
+
+    string_literal: ($) =>
+      seq(
+        $._string_start,
+        repeat(choice($.interpolation, $._string_content)),
+        $._string_end
+      ),
+
+    interpolation: ($) => seq("{", field("expression", $._expression), "}"),
 
     // :h floating-point-format
     float_literal: ($) => {

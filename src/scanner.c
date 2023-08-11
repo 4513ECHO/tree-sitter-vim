@@ -37,13 +37,22 @@ enum TokenType {
   SEP,
   SCOPE_DICT,
   SCOPE,
-  STRING,
+  STRING_START,
+  STRING_CONTENT,
+  STRING_END,
   COMMENT,
   LINE_CONTINUATION_COMMENT,
   BANG_FILTER,
   // Many many many many keywords that are impossible to lex otherwise, see
   // src/keywords.h
   KEYWORDS_BASE
+};
+
+enum StringType {
+  ESCAPABLE,
+  LITERAL,
+  INTERPOLATED_ESCAPABLE,
+  INTERPOLATED_LITERAL
 };
 
 void *tree_sitter_vim_external_scanner_create() {
@@ -157,22 +166,26 @@ bool try_lex_heredoc_marker(Scanner *scanner, TSLexer *lexer, const bool is_let_
   return true;
 }
 
-bool is_valid_string_delim(char c) {
-  return c == '\'' || c == '"';
-}
-
-bool lex_literal_string(TSLexer *lexer) {
+bool lex_literal_string(TSLexer *lexer, bool interpolated) {
   while (true) {
+    // if (interpolated && (lexer->lookahead == '{' || lexer->lookahead == '}')) {
+    //   lexer->mark_end(lexer);
+    //   lexer->result_symbol = STRING_CONTENT;
+    //   return false;
+    // }
     if(lexer->lookahead == '\'') {
       // Maybe end of string, but not sure, it could be double quote
+      lexer->mark_end(lexer);
       advance(lexer, false);
-      if (lexer->lookahead == '\'') {
-        advance(lexer, false);
-      } else {
-        lexer->result_symbol = STRING;
-        lexer->mark_end(lexer);
-        return true;
-      }
+      lexer->result_symbol = STRING_END;
+      lexer->mark_end(lexer);
+      return true;
+      // if (lexer->lookahead == '\'') {
+      //   lexer->result_symbol = STRING_CONTENT;
+      //   advance(lexer, false);
+      // } else {
+      //   return true;
+      // }
     } else if (lexer->lookahead == '\n') {
       // Not sure at this point, look after that if there's not a \\ character
       lexer->mark_end(lexer);
@@ -197,9 +210,8 @@ bool lex_escapable_string(TSLexer *lexer) {
       advance(lexer, false);
       advance(lexer, false);
     } else if (lexer->lookahead == '"') {
-      advance(lexer, false);
       lexer->mark_end(lexer);
-      lexer->result_symbol = STRING;
+      lexer->result_symbol = STRING_END;
       return true;
     } else if (lexer->lookahead == '\n') {
       // Not sure at this point, look after that if there's not a \\ character
@@ -220,21 +232,40 @@ bool lex_escapable_string(TSLexer *lexer) {
   }
 }
 
-bool lex_string(TSLexer *lexer) {
-  char string_delim;
+bool lex_string(TSLexer *lexer, const bool *valid_symbols) {
+  enum StringType string_type = -1;
+  char c;
 
-  if (!is_valid_string_delim(lexer->lookahead)) {
-    return false;
+  if (valid_symbols[STRING_START]) {
+    c = lexer->lookahead;
+    if (c == '\'') {
+      string_type = LITERAL;
+    } else if (c == '"') {
+      string_type = ESCAPABLE;
+    } else if (c == '$') {
+      advance(lexer, false);
+      c = lexer->lookahead;
+      if (c == '\'') {
+        string_type = INTERPOLATED_LITERAL;
+      } else if (c == '"') {
+        string_type = INTERPOLATED_ESCAPABLE;
+      }
+    }
+    if (string_type == -1) {
+      return false;
+    }
+    advance(lexer, false);
+    return true;
   }
 
-  string_delim = lexer->lookahead;
-  advance(lexer, false);
-
-  switch (string_delim) {
-    case '"':
+  switch (string_type) {
+    case LITERAL:
+      return lex_literal_string(lexer, false);
+    case ESCAPABLE:
+    case INTERPOLATED_ESCAPABLE:
       return lex_escapable_string(lexer);
-    case '\'':
-      return lex_literal_string(lexer);
+    case INTERPOLATED_LITERAL:
+      return lex_literal_string(lexer, true);
     default:
       assert(0);
   }
@@ -449,7 +480,7 @@ bool tree_sitter_vim_external_scanner_scan(void *payload, TSLexer *lexer,
     return true;
   }
 
-  if (valid_symbols[COMMENT] && !valid_symbols[STRING]
+  if (valid_symbols[COMMENT] && !valid_symbols[STRING_START]
       && lexer->lookahead == '"' && !s->ignore_comments) {
     // This con only be a comment
     do {
@@ -458,10 +489,9 @@ bool tree_sitter_vim_external_scanner_scan(void *payload, TSLexer *lexer,
 
     lexer->result_symbol = COMMENT;
     return true;
-  } else if (valid_symbols[STRING]) {
-    return lex_string(lexer);
+  } else if (valid_symbols[STRING_START] || valid_symbols[STRING_CONTENT] || valid_symbols[STRING_END]) {
+    return lex_string(lexer, valid_symbols);
   }
-
   // Other keywords
   if (iswlower(lexer->lookahead)) {
 #define KEYWORD_SIZE 30

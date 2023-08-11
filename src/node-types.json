@@ -5190,6 +5190,114 @@
     }
   },
   {
+    "type": "interpolation",
+    "named": true,
+    "fields": {
+      "expression": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "(",
+            "named": false
+          },
+          {
+            "type": ")",
+            "named": false
+          },
+          {
+            "type": "argument",
+            "named": true
+          },
+          {
+            "type": "binary_operation",
+            "named": true
+          },
+          {
+            "type": "call_expression",
+            "named": true
+          },
+          {
+            "type": "dictionnary",
+            "named": true
+          },
+          {
+            "type": "env_variable",
+            "named": true
+          },
+          {
+            "type": "field_expression",
+            "named": true
+          },
+          {
+            "type": "float_literal",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "index_expression",
+            "named": true
+          },
+          {
+            "type": "integer_literal",
+            "named": true
+          },
+          {
+            "type": "lambda_expression",
+            "named": true
+          },
+          {
+            "type": "list",
+            "named": true
+          },
+          {
+            "type": "literal_dictionary",
+            "named": true
+          },
+          {
+            "type": "method_expression",
+            "named": true
+          },
+          {
+            "type": "option",
+            "named": true
+          },
+          {
+            "type": "register",
+            "named": true
+          },
+          {
+            "type": "scope_dict",
+            "named": true
+          },
+          {
+            "type": "scoped_identifier",
+            "named": true
+          },
+          {
+            "type": "slice_expression",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          },
+          {
+            "type": "ternary_expression",
+            "named": true
+          },
+          {
+            "type": "unary_operation",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "inv_option",
     "named": true,
     "fields": {},
@@ -8289,6 +8397,21 @@
     "fields": {}
   },
   {
+    "type": "string_literal",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "interpolation",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "syntax_argument",
     "named": true,
     "fields": {
@@ -10910,6 +11033,10 @@
     "named": true
   },
   {
+    "type": "filetype",
+    "named": false
+  },
+  {
     "type": "finally",
     "named": false
   },
@@ -11083,11 +11210,11 @@
   },
   {
     "type": "keyword",
-    "named": false
+    "named": true
   },
   {
     "type": "keyword",
-    "named": true
+    "named": false
   },
   {
     "type": "koi8",
@@ -11488,10 +11615,6 @@
   {
     "type": "strikethrough",
     "named": false
-  },
-  {
-    "type": "string_literal",
-    "named": true
   },
   {
     "type": "sync",
